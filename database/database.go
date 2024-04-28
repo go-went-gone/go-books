@@ -12,37 +12,49 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
 var client *mongo.Client
 var bookCollection *mongo.Collection
 var COLLECTION = "Books"
-func GetClient() *mongo.Client{
+
+// get client
+func GetClient() *mongo.Client {
 	uri := os.Getenv("DATABASE_URL")
+
 	//getting context
 	if client != nil {
 		return client
 	}
-	ctx, cancel := context.WithTimeout(context.Background(),10*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	//getting client
-	client, err := mongo.Connect(ctx,options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	return client
 }
 
-func GetCollection(client *mongo.Client, collectioName string)*mongo.Collection{
+// get collection
+func GetCollection(client *mongo.Client, collectioName string) *mongo.Collection {
 	if bookCollection != nil {
 		return bookCollection
 	}
+
 	bookCollection := client.Database("BookShop").Collection(collectioName)
+
 	return bookCollection
 }
 
-func Disconnect(){
-	ctx, cancel := context.WithTimeout(context.Background(),10*time.Second)
+// disconnect database
+func Disconnect() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if client == nil{
+	if client == nil {
 		return
 	}
 	err := client.Disconnect(ctx)
@@ -51,58 +63,83 @@ func Disconnect(){
 	}
 }
 
-//Query database
-func List_Books()[]Book{
+// get book list
+func List_Books() []Book {
 	client := GetClient()
-	bookCollection := GetCollection(client,COLLECTION)
+
+	bookCollection := GetCollection(client, COLLECTION)
+
 	//mongo queries
-	ctx, cancel := context.WithTimeout(context.Background(),10 * time.Second)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel() // cancel() will be call immediately when finish List_Books()
+
 	var bookList []Book
-	cursor, err := bookCollection.Find(ctx,bson.D{})
-	defer cursor.Close(ctx)
+
+	cursor, err := bookCollection.Find(ctx, bson.D{})
+	defer cursor.Close(ctx) // cursor.Close(ctx) will be call immediately when finish List_Books()
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 	//Iterating through the book elements
-	for cursor.Next(ctx){
+	for cursor.Next(ctx) {
 		var book Book
+
 		err := cursor.Decode(&book)
 		if err != nil {
 			log.Fatalln(err)
 		}
+
 		bookList = append(bookList, book)
 	}
-	
+
 	return bookList
 }
-func Find_Book(name string)*Book{
+
+// get one book
+func Find_Book(name string) *Book {
 	client := GetClient()
-	bookCollection := GetCollection(client,COLLECTION)
-	ctx, cancel := context.WithTimeout(context.Background(),10 * time.Second)
+
+	bookCollection := GetCollection(client, COLLECTION)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
 	defer cancel()
+
 	var book *Book
-	filter := bson.D{{"name",name}}
-	err := bookCollection.FindOne(ctx,filter).Decode(&book)
+
+	filter := bson.D{{"name", name}}
+
+	err := bookCollection.FindOne(ctx, filter).Decode(&book)
+
 	if err != nil {
 		return nil
 	}
+
 	return book
 }
-func Create_Book(book Book)string{
+
+// create book
+func Create_Book(book Book) string {
 	client := GetClient()
-	bookCollection := GetCollection(client,COLLECTION)
-	ctx,cancel := context.WithTimeout(context.Background(),10 * time.Second)
+
+	bookCollection := GetCollection(client, COLLECTION)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
 	defer cancel()
+
 	bookToPost := Book{
-		Id: primitive.NewObjectID(),
-		Name: book.Name,
+		Id:    primitive.NewObjectID(),
+		Name:  book.Name,
 		Price: book.Price,
 	}
-	result, err := bookCollection.InsertOne(ctx,bookToPost)
+
+	result, err := bookCollection.InsertOne(ctx, bookToPost)
+
 	if err != nil {
 		return ""
 	}
+	
 	return result.InsertedID.(primitive.ObjectID).Hex()
 }

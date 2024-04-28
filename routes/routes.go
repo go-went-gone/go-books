@@ -8,14 +8,14 @@ import (
 
 )
 
-func ListBooks(c *gin.Context) {
+func ListBooks(ginContext *gin.Context) {
 	listbooks := List_Books()
 	if listbooks == nil {
-		c.IndentedJSON(http.StatusNotFound,gin.H{"message":"List is empty"})
+		ginContext.IndentedJSON(http.StatusNotFound,gin.H{"message":"List is empty"})
 		return
 	}
 	//Response to api
-	c.IndentedJSON(http.StatusOK,gin.H{"message":"Data fetched successfully","data":listbooks})
+	ginContext.IndentedJSON(http.StatusOK,gin.H{"message":"Data fetched successfully","data":listbooks})
 }
 
 func CreateBook(c *gin.Context){
